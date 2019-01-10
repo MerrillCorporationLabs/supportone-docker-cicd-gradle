@@ -18,7 +18,7 @@ docker run \
     -p 4200:4200 \
     -v $(pwd):/home/gradle/test \
     --name supportone-docker-cicd-gradle \
-    merrillcorporation/supportone-docker-cicd-gradle/chrome-headless:1
+    merrillcorporation/supportone-docker-cicd-gradle
 ```
 
 Execute against container
