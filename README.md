@@ -7,7 +7,7 @@ Docker container for CICD builds that has openjdk, and gradle
 ## Gradle
 Example build command
 ```docker
-docker build --pull -t merrillcorporation/docker-cicd-node/gradle-build:1 .
+docker build --pull -t merrillcorporation/supportone-docker-cicd-gradle/gradle-build:1 .
 ```
 
 Run the following in your code workspace.
