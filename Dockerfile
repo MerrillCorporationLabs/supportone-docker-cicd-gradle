@@ -15,6 +15,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     openssh-client \
     git \
     gradle \
+    gzip \
+    jq \
     && rm -rf /var/lib/apt/lists/*
 
 RUN set -ex; \
@@ -53,6 +55,13 @@ ENV PATH="${SONAR_RUNNER_HOME}/bin:${PATH}"
 # https://engineeringblog.yelp.com/2016/01/dumb-init-an-init-for-docker.html
 ADD https://github.com/Yelp/dumb-init/releases/download/v1.2.0/dumb-init_1.2.0_amd64 /usr/local/bin/dumb-init
 RUN chmod +x /usr/local/bin/dumb-init
+
+RUN wget -qO- "https://packages.cloudfoundry.org/stable?release=linux64-binary&source=github" | tar -zx && \
+	mv cf /usr/local/bin && \
+	cf --version
+
+COPY cf-cli.sh /usr/local/bin
+COPY rolling-deploy.sh /usr/local/bin
 
 USER gradle
 VOLUME /home/gradle
