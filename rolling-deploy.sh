@@ -2,6 +2,7 @@
 set -o errexit
 set -o pipefail
 set -o nounset
+export DEBUG=true
 [[ ${DEBUG:-} == true ]] && set -o xtrace
 
 usage() {
@@ -20,8 +21,11 @@ error () {
     exit "$2"
 } >&2
 
-while getopts ":h" opt; do
+while getopts ":hd" opt; do
     case $opt in
+        d)
+            is_debug=true
+            ;;
         h)
             usage
             exit 0
@@ -42,7 +46,7 @@ declare json_file="${1}"
 # set cf vars
 read -r CF_API_ENDPOINT CF_BUILDPACK CF_USER CF_PASSWORD CF_ORG CF_SPACE CF_INTERNAL_APPS_DOMAIN CF_EXTERNAL_APPS_DOMAIN <<<$(jq -r '.cf | "\(.api_endpoint) \(.buildpack) \(.user) \(.password) \(.org) \(.space) \(.apps_domain.internal) \(.apps_domain.external)"' "${json_file}")
 read -r APP_NAME APP_MEMORY ARTIFACT_PATH BUILD_NUMBER EXTERNAL_APP_HOSTNAME PUSH_OPTIONS <<<$(jq -r '. | "\(.app_name) \(.app_memory) \(.artifact_path) \(.build_number) \(.external_app_hostname) \(.push_options)"' "${json_file}")
-readarray -t CF_SERVICES <<<"$(jq -r '.cf.services[]' "${json_file}")"
+# readarray -t CF_SERVICES <<<"$(jq -r '.cf.services[]' "${json_file}")"
 
 if [[ ${DEBUG} == true ]]; then
 	echo "${CF_API_ENDPOINT}"
@@ -77,7 +81,7 @@ declare -i DEPLOYED_APP_INSTANCES=$(cf curl /v2/apps -X GET -H 'Content-Type: ap
 cf push "${APP_NAME}-${BUILD_NUMBER}" -i 1 -m ${APP_MEMORY} \
   -n "${APP_NAME}-${BUILD_NUMBER}" -d "${CF_INTERNAL_APPS_DOMAIN}" \
   -b "${CF_BUILDPACK}" \
-  -p "${ARTIFACT_PATH}" ${PUSH_OPTIONS}
+  -p "${ARTIFACT_PATH}/${APP_NAME}"-*.jar ${PUSH_OPTIONS}
 
 for CF_SERVICE in "${CF_SERVICES[@]}"; do
   if [ -n "${CF_SERVICE}" ]; then
@@ -89,7 +93,14 @@ done
 cf start "${APP_NAME}-${BUILD_NUMBER}"
 
 echo "Performing zero-downtime cutover to ${APP_NAME}-${BUILD_NUMBER}"
-cf map-route "${APP_NAME}-${BUILD_NUMBER}" "${CF_EXTERNAL_APPS_DOMAIN}" -n "${EXTERNAL_APP_HOSTNAME}"
+if [[ $CF_SPACE =~ .*dev.* ]]; then
+    cf map-route "${APP_NAME}-${BUILD_NUMBER}" "${CF_EXTERNAL_APPS_DOMAIN}" -n "${EXTERNAL_APP_HOSTNAME}";
+elif [[ $CF_SPACE =~ .*stage.* ]]; then
+    cf map-route "${APP_NAME}-${BUILD_NUMBER}" "${CF_EXTERNAL_APPS_DOMAIN}" -n "${EXTERNAL_APP_HOSTNAME}-stage";
+elif [[ $CF_SPACE =~ .*prod.* ]]; then
+    cf map-route "${APP_NAME}-${BUILD_NUMBER}" "${CF_EXTERNAL_APPS_DOMAIN}" -n "${EXTERNAL_APP_HOSTNAME}-prod";
+fi
+
 
 echo "A/B deployment"
 if [[ ! -z "${DEPLOYED_APP}" && "${DEPLOYED_APP}" != "" ]]; then
@@ -109,8 +120,13 @@ if [[ ! -z "${DEPLOYED_APP}" && "${DEPLOYED_APP}" != "" ]]; then
     done
 
     echo "Unmapping the external route from the application ${DEPLOYED_APP}"
-    cf unmap-route "${DEPLOYED_APP}" "${CF_EXTERNAL_APPS_DOMAIN}" -n "${EXTERNAL_APP_HOSTNAME}"
-
+    if [[ $CF_SPACE =~ .*dev.* ]]; then
+        cf unmap-route "${DEPLOYED_APP}" "${CF_EXTERNAL_APPS_DOMAIN}" -n "${EXTERNAL_APP_HOSTNAME}";
+    elif [[ $CF_SPACE =~ .*stage.* ]]; then
+        cf unmap-route "${DEPLOYED_APP}" "${CF_EXTERNAL_APPS_DOMAIN}" -n "${EXTERNAL_APP_HOSTNAME}-stage";
+    elif [[ $CF_SPACE =~ .*prod.* ]]; then
+        cf unmap-route "${DEPLOYED_APP}" "${CF_EXTERNAL_APPS_DOMAIN}" -n "${EXTERNAL_APP_HOSTNAME}-prod";
+    fi
     echo "Deleting the application ${DEPLOYED_APP}"
     cf delete "${DEPLOYED_APP}" -f
 fi
