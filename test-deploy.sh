@@ -82,7 +82,7 @@ fi
 echo "Performing test deploy of application ${APP_NAME}"
 
 cf push "${APP_NAME}" -i 1 -m "${APP_MEMORY}" -k "${APP_DISK}" -t "${TIMEOUT}" -b "${CF_BUILDPACK}" \
-  -n "${APP_NAME}" -d "${CF_INTERNAL_APP_DOMAIN}" -p "${ARTIFACT_PATH}" "${PUSH_OPTIONS}"
+  -n "${APP_NAME}" -d "${CF_INTERNAL_APP_DOMAIN}" -p "${ARTIFACT_PATH}" ${PUSH_OPTIONS}
 
 for CF_SERVICE in "${CF_SERVICES[@]}"; do
   if [ -n "${CF_SERVICE}" ]; then
