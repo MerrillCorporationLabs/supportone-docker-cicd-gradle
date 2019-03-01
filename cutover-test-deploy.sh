@@ -7,9 +7,10 @@ export DEBUG=true
 
 usage() {
     cat <<END
-test-deploy.sh [-d] jsonFile
+cutover-test-deploy.sh [-d] jsonFile
 
-Test deploy for pcf application
+Cutover to test deploy pcf application
+NOTE: will go kaboom if existing application not found
 jsonFile: jsonFile with all the vars needed to run the script. see: example
 	-d: (optional) debug will print details
     -h: show this help message
@@ -71,28 +72,55 @@ fi
 cf api --skip-ssl-validation "${CF_API_ENDPOINT}"
 cf login -u "${CF_USERNAME}" -p "${CF_PASSWORD}" -o "${CF_ORGANIZATION}" -s "${CF_SPACE}"
 
-if [[ "$ARTIFACT_TYPE" == "directory" && ! -d ${ARTIFACT_PATH} ]]; then
-    echo "Exiting before test deploy because directory ${ARTIFACT_PATH} not found"
-    exit 1
+DEPLOYED_APP="${APP_NAME}"
+NEW_APP="${TEST_APP_NAME}"
+
+[[ ${DEBUG} == true ]] && echo "Deployed application ${APP_NAME} has ${INSTANCES} instances"
+
+echo "Performing cutover to test deploy application ${NEW_APP}"
+if [[ $CF_SPACE =~ .*dev.* ]]; then
+    cf map-route "${NEW_APP}" "${CF_EXTERNAL_APP_DOMAIN}" -n "${EXTERNAL_APP_HOSTNAME}";
+elif [[ $CF_SPACE =~ .*stage.* ]]; then
+    cf map-route "${NEW_APP}" "${CF_EXTERNAL_APP_DOMAIN}" -n "${EXTERNAL_APP_HOSTNAME}-stage";
+elif [[ $CF_SPACE =~ .*prod.* ]]; then
+    cf map-route "${NEW_APP}" "${CF_EXTERNAL_APP_DOMAIN}" -n "${EXTERNAL_APP_HOSTNAME}-prod";
 fi
-if [[ "$ARTIFACT_TYPE" == "file" && ! -f ${ARTIFACT_PATH} ]]; then
-    echo "Exiting before test deploy because file ${ARTIFACT_PATH} not found"
-    exit 1
+
+echo "A/B deployment"
+if [[ ! -z "${DEPLOYED_APP}" && "${DEPLOYED_APP}" != "" ]]; then
+
+    declare -i instances=0
+    declare -i old_app_instances=${INSTANCES}
+    echo "Begin scaling down from ${INSTANCES} instances"
+
+    while (( ${instances} != ${INSTANCES} )); do
+      	declare -i instances=${instances}+1
+		declare -i old_app_instances=${old_app_instances}-1
+      	echo "Scaling up new application ${NEW_APP} to ${instances} instances"
+      	cf scale -i ${instances} "${NEW_APP}"
+        echo "Scaling down deployed application ${DEPLOYED_APP} to ${old_app_instances} instances"
+        cf scale -i ${old_app_instances} "${DEPLOYED_APP}"
+    done
+
+    echo "Unmapping external route from deployed application ${DEPLOYED_APP}"
+    if [[ $CF_SPACE =~ .*dev.* ]]; then
+        cf unmap-route "${DEPLOYED_APP}" "${CF_EXTERNAL_APP_DOMAIN}" -n "${EXTERNAL_APP_HOSTNAME}";
+    elif [[ $CF_SPACE =~ .*stage.* ]]; then
+        cf unmap-route "${DEPLOYED_APP}" "${CF_EXTERNAL_APP_DOMAIN}" -n "${EXTERNAL_APP_HOSTNAME}-stage";
+    elif [[ $CF_SPACE =~ .*prod.* ]]; then
+        cf unmap-route "${DEPLOYED_APP}" "${CF_EXTERNAL_APP_DOMAIN}" -n "${EXTERNAL_APP_HOSTNAME}-prod";
+    fi
+    echo "Deleting deployed application ${DEPLOYED_APP}"
+    cf delete "${DEPLOYED_APP}" -f
 fi
 
-RANDOM_NUMBER=$((1 + RANDOM * 100))
-RANDOM_ROUTE="${APP_NAME}-${RANDOM_NUMBER}"
+# TODO: move rename into replace delete old app to keep metrics
+#echo "Renaming ${APP_NAME} to ${APP_NAME}-old"
+#cf rename "${APP_NAME}" "${APP_NAME}-old"
+#
+echo "Renaming new application ${NEW_APP} to ${APP_NAME}"
+cf rename "${NEW_APP}" "${APP_NAME}"
 
-echo "Performing test deploy of application ${TEST_APP_NAME}"
-
-cf push "${TEST_APP_NAME}" -i 1 -m "${APP_MEMORY}" -k "${APP_DISK}" -t "${TIMEOUT}" -b "${CF_BUILDPACK}" \
-  -n "${RANDOM_ROUTE}" -d "${CF_INTERNAL_APP_DOMAIN}" -p "${ARTIFACT_PATH}" ${PUSH_OPTIONS}
-
-for CF_SERVICE in "${CF_SERVICES[@]}"; do
-  if [ -n "${CF_SERVICE}" ]; then
-    echo "Binding service ${CF_SERVICE}"
-    cf bind-service "${TEST_APP_NAME}" "${CF_SERVICE}"
-  fi
-done
-
-cf start "${TEST_APP_NAME}"
+# TODO: just delete routes related to this app
+#echo "Deleting the orphaned routes"
+#cf delete-orphaned-routes -f

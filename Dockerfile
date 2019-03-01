@@ -65,6 +65,8 @@ RUN wget -qO- "https://packages.cloudfoundry.org/stable?release=linux64-binary&v
 COPY cf-cli.sh /usr/local/bin
 COPY rolling-deploy.sh /usr/local/bin
 COPY test-deploy.sh /usr/local/bin
+COPY cutover-test-deploy.sh /usr/local/bin
+COPY recent-logs.sh /usr/local/bin
 COPY cleanup.sh /usr/local/bin
 
 USER gradle
