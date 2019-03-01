@@ -70,12 +70,11 @@ fi
 cf api --skip-ssl-validation "${CF_API_ENDPOINT}"
 cf login -u "${CF_USERNAME}" -p "${CF_PASSWORD}" -o "${CF_ORGANIZATION}" -s "${CF_SPACE}"
 
-# choose pseudo-random number
 RANDOM_NUMBER=$((1 + RANDOM * 100))
 DEPLOYED_APP="${APP_NAME}"
 NEW_APP="${APP_NAME}-${RANDOM_NUMBER}"
 
-[[ ${DEBUG} == true ]] && echo "Deployed app ${DEPLOYED_APP} has ${INSTANCES} instances"
+[[ ${DEBUG} == true ]] && echo "Deployed application ${DEPLOYED_APP} has ${INSTANCES} instances"
 
 if [[ $ARTIFACT_TYPE == "directory" && ! -d ${ARTIFACT_PATH} ]]; then
     echo "Exiting before deploy because directory ${ARTIFACT_PATH} not found"
@@ -98,7 +97,7 @@ done
 
 cf start "${NEW_APP}"
 
-echo "Performing zero-downtime cutover to ${NEW_APP}"
+echo "Performing cutover to new application ${NEW_APP}"
 if [[ $CF_SPACE =~ .*dev.* ]]; then
     cf map-route "${NEW_APP}" "${CF_EXTERNAL_APP_DOMAIN}" -n "${EXTERNAL_APP_HOSTNAME}";
 elif [[ $CF_SPACE =~ .*stage.* ]]; then
@@ -112,18 +111,18 @@ if [[ ! -z "${DEPLOYED_APP}" && "${DEPLOYED_APP}" != "" ]]; then
 
     declare -i instances=0
     declare -i old_app_instances=${INSTANCES}
-    echo "begin scaling down from: ${INSTANCES}"
+    echo "Begin scaling down from ${INSTANCES} instances"
 
     while (( ${instances} != ${INSTANCES} )); do
       	declare -i instances=${instances}+1
 		declare -i old_app_instances=${old_app_instances}-1
-      	echo "Scaling up ${NEW_APP} to ${instances}.."
+      	echo "Scaling up new application ${NEW_APP} to ${instances} instances"
       	cf scale -i ${instances} "${NEW_APP}"
-        echo "Scaling down ${DEPLOYED_APP} to ${old_app_instances}.."
+        echo "Scaling down deployed application ${DEPLOYED_APP} to ${old_app_instances} instances"
         cf scale -i ${old_app_instances} "${DEPLOYED_APP}"
     done
 
-    echo "Unmapping external route from the application ${DEPLOYED_APP}"
+    echo "Unmapping external route from deployed application ${DEPLOYED_APP}"
     if [[ $CF_SPACE =~ .*dev.* ]]; then
         cf unmap-route "${DEPLOYED_APP}" "${CF_EXTERNAL_APP_DOMAIN}" -n "${EXTERNAL_APP_HOSTNAME}";
     elif [[ $CF_SPACE =~ .*stage.* ]]; then
@@ -131,7 +130,7 @@ if [[ ! -z "${DEPLOYED_APP}" && "${DEPLOYED_APP}" != "" ]]; then
     elif [[ $CF_SPACE =~ .*prod.* ]]; then
         cf unmap-route "${DEPLOYED_APP}" "${CF_EXTERNAL_APP_DOMAIN}" -n "${EXTERNAL_APP_HOSTNAME}-prod";
     fi
-    echo "Deleting the application ${DEPLOYED_APP}"
+    echo "Deleting deployed application ${DEPLOYED_APP}"
     cf delete "${DEPLOYED_APP}" -f
 fi
 
@@ -139,7 +138,7 @@ fi
 #echo "Renaming ${APP_NAME} to ${APP_NAME}-old"
 #cf rename "${APP_NAME}" "${APP_NAME}-old"
 #
-echo "Renaming ${NEW_APP} to ${APP_NAME}"
+echo "Renaming new application ${NEW_APP} to ${APP_NAME}"
 cf rename "${NEW_APP}" "${APP_NAME}"
 
 # TODO: just delete routes related to this app
