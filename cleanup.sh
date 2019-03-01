@@ -9,7 +9,7 @@ usage() {
     cat <<END
 cleanup.sh [-d] jsonFile
 
-Delete pcf application
+Delete test pcf application
 jsonFile: jsonFile with all the vars needed to run the script. see: example
 	-d: (optional) debug will print details
     -h: show this help message
@@ -44,17 +44,17 @@ shift $(( OPTIND -1 ))
 declare json_file="${1}"
 
 # set cf vars
-read -r CF_API_ENDPOINT CF_USERNAME CF_PASSWORD CF_ORGANIZATION CF_SPACE APP_NAME <<<$(jq -r '. | "\(.api_endpoint) \(.username) \(.password) \(.organization) \(.space) \(.app_name)"' "${json_file}")
+read -r CF_API_ENDPOINT CF_USERNAME CF_PASSWORD CF_ORGANIZATION CF_SPACE TEST_APP_NAME <<<$(jq -r '. | "\(.api_endpoint) \(.username) \(.password) \(.organization) \(.space) \(.test_app_name)"' "${json_file}")
 
 if [[ ${DEBUG} == true ]]; then
 	echo "CF_API_ENDPOINT => ${CF_API_ENDPOINT}"
 	echo "CF_ORGANIZATION => ${CF_ORGANIZATION}"
 	echo "CF_SPACE => ${CF_SPACE}"
-	echo "APP_NAME => ${APP_NAME}"
+	echo "TEST_APP_NAME => ${TEST_APP_NAME}"
 fi
 
 cf api --skip-ssl-validation "${CF_API_ENDPOINT}"
 cf login -u "${CF_USERNAME}" -p "${CF_PASSWORD}" -o "${CF_ORGANIZATION}" -s "${CF_SPACE}"
 
-echo "Deleting pcf application ${APP_NAME}"
-cf delete "${APP_NAME}" -f -r
+echo "Deleting pcf application ${TEST_APP_NAME}"
+cf delete "${TEST_APP_NAME}" -f -r
