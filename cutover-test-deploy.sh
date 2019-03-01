@@ -75,7 +75,7 @@ cf login -u "${CF_USERNAME}" -p "${CF_PASSWORD}" -o "${CF_ORGANIZATION}" -s "${C
 DEPLOYED_APP="${APP_NAME}"
 NEW_APP="${TEST_APP_NAME}"
 
-[[ ${DEBUG} == true ]] && echo "Deployed application ${APP_NAME} has ${INSTANCES} instances"
+[[ ${DEBUG} == true ]] && echo "Deployed application ${DEPLOYED_APP} has ${INSTANCES} instances"
 
 echo "Performing cutover to test deploy application ${NEW_APP}"
 if [[ $CF_SPACE =~ .*dev.* ]]; then
