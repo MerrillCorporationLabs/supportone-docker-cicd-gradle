@@ -66,6 +66,20 @@ cf login -u "${CF_USERNAME}" -p "${CF_PASSWORD}" -o "${CF_ORGANIZATION}" -s "${C
 DEPLOYED_APP="${APP_NAME}"
 NEW_APP="${TEST_APP_NAME}"
 
+SPACE_GUID=$(cf space "${CF_SPACE}" --guid)
+DEPLOYED_INSTANCES=$(cf curl /v2/apps -X GET -H 'Content-Type: application/x-www-form-urlencoded' -d "q=name:${APP_NAME}" | jq -r --arg DEPLOYED_APP "${DEPLOYED_APP}" \
+  ".resources[] | select(.entity.space_guid == \"${SPACE_GUID}\") | select(.entity.name == \"${DEPLOYED_APP}\") | .entity.instances | numbers")
+
+if [[ -z "$DEPLOYED_INSTANCES" ]]; then
+echo "Deployed app ${DEPLOYED_APP} not found so doing normal deployment instead"
+
+cf map-route "${NEW_APP}" "${CF_EXTERNAL_APP_DOMAIN}" -n "${EXTERNAL_APP_HOSTNAME}${APP_SUFFIX}"
+cf scale -i ${INSTANCES} "${NEW_APP}"
+cf rename "${NEW_APP}" "${APP_NAME}"
+
+exit 0
+fi
+
 echo "Performing cutover to new app ${NEW_APP}"
 cf map-route "${NEW_APP}" "${CF_EXTERNAL_APP_DOMAIN}" -n "${EXTERNAL_APP_HOSTNAME}${APP_SUFFIX}"
 
