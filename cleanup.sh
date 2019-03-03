@@ -56,5 +56,13 @@ fi
 cf api --skip-ssl-validation "${CF_API_ENDPOINT}"
 cf login -u "${CF_USERNAME}" -p "${CF_PASSWORD}" -o "${CF_ORGANIZATION}" -s "${CF_SPACE}"
 
-echo "Deleting pcf application ${TEST_APP_NAME}"
+SPACE_GUID=$(cf space "${CF_SPACE}" --guid)
+DEPLOYED_APP_INSTANCES=$(cf curl /v2/apps -X GET -H 'Content-Type: application/x-www-form-urlencoded' -d "q=name:${TEST_APP_NAME}" | jq -r --arg DEPLOYED_APP "${TEST_APP_NAME}" \
+  ".resources[] | select(.entity.space_guid == \"${SPACE_GUID}\") | select(.entity.name == \"${TEST_APP_NAME}\") | .entity.instances | numbers")
+
+if [[ -z "$DEPLOYED_APP_INSTANCES" ]]; then
+echo "Test app ${TEST_APP_NAME} not found so skipping delete"
+else
+echo "Deleting test app ${TEST_APP_NAME}"
 cf delete "${TEST_APP_NAME}" -f -r
+fi

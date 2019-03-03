@@ -56,5 +56,20 @@ fi
 cf api --skip-ssl-validation "${CF_API_ENDPOINT}"
 cf login -u "${CF_USERNAME}" -p "${CF_PASSWORD}" -o "${CF_ORGANIZATION}" -s "${CF_SPACE}"
 
-[[ "${APP_NAME}" ]] && cf logs "${APP_NAME}" --recent
-[[ "${TEST_APP_NAME}" ]] && cf logs "${TEST_APP_NAME}" --recent
+SPACE_GUID=$(cf space "${CF_SPACE}" --guid)
+DEPLOYED_APP_INSTANCES=$(cf curl /v2/apps -X GET -H 'Content-Type: application/x-www-form-urlencoded' -d "q=name:${APP_NAME}" | jq -r --arg DEPLOYED_APP "${APP_NAME}" \
+  ".resources[] | select(.entity.space_guid == \"${SPACE_GUID}\") | select(.entity.name == \"${APP_NAME}\") | .entity.instances | numbers")
+DEPLOYED_TEST_APP_INSTANCES=$(cf curl /v2/apps -X GET -H 'Content-Type: application/x-www-form-urlencoded' -d "q=name:${TEST_APP_NAME}" | jq -r --arg DEPLOYED_APP "${TEST_APP_NAME}" \
+  ".resources[] | select(.entity.space_guid == \"${SPACE_GUID}\") | select(.entity.name == \"${TEST_APP_NAME}\") | .entity.instances | numbers")
+
+if [[ -z "$DEPLOYED_APP_INSTANCES" ]]; then
+echo "App ${APP_NAME} not found so no logs to print"
+else
+cf logs "${APP_NAME}" --recent
+fi
+
+if [[ -z "$DEPLOYED_TEST_APP_INSTANCES" ]]; then
+echo "Test app ${TEST_APP_NAME} not found so no logs to print"
+else
+cf logs "${TEST_APP_NAME}" --recent
+fi

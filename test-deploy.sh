@@ -48,6 +48,15 @@ read -r CF_API_ENDPOINT CF_BUILDPACK CF_USERNAME CF_PASSWORD CF_ORGANIZATION CF_
 read -r APP_NAME TEST_APP_NAME APP_MEMORY APP_DISK TIMEOUT INSTANCES ARTIFACT_PATH ARTIFACT_TYPE EXTERNAL_APP_HOSTNAME PUSH_OPTIONS <<<$(jq -r '. | "\(.app_name) \(.test_app_name) \(.app_memory) \(.app_disk) \(.timeout) \(.instances) \(.artifact_path) \(.artifact_type) \(.external_app_hostname) \(.push_options)"' "${json_file}")
 readarray -t CF_SERVICES <<<"$(jq -r '.services[]' "${json_file}")"
 
+if [[ "$ARTIFACT_TYPE" == "directory" && ! -d ${ARTIFACT_PATH} ]]; then
+    echo "Exiting before test deploy because artifact path directory ${ARTIFACT_PATH} not found"
+    exit 1
+fi
+if [[ "$ARTIFACT_TYPE" == "file" && ! -f ${ARTIFACT_PATH} ]]; then
+    echo "Exiting before test deploy because artifact path file ${ARTIFACT_PATH} not found"
+    exit 1
+fi
+
 if [[ ${DEBUG} == true ]]; then
 	echo "CF_API_ENDPOINT => ${CF_API_ENDPOINT}"
 	echo "CF_BUILDPACK => ${CF_BUILDPACK}"
@@ -71,15 +80,6 @@ fi
 cf api --skip-ssl-validation "${CF_API_ENDPOINT}"
 cf login -u "${CF_USERNAME}" -p "${CF_PASSWORD}" -o "${CF_ORGANIZATION}" -s "${CF_SPACE}"
 
-if [[ "$ARTIFACT_TYPE" == "directory" && ! -d ${ARTIFACT_PATH} ]]; then
-    echo "Exiting before test deploy because directory ${ARTIFACT_PATH} not found"
-    exit 1
-fi
-if [[ "$ARTIFACT_TYPE" == "file" && ! -f ${ARTIFACT_PATH} ]]; then
-    echo "Exiting before test deploy because file ${ARTIFACT_PATH} not found"
-    exit 1
-fi
-
 RANDOM_NUMBER=$((1 + RANDOM * 100))
 RANDOM_ROUTE="${APP_NAME}-${RANDOM_NUMBER}"
 
@@ -90,7 +90,7 @@ cf push "${TEST_APP_NAME}" -i 1 -m "${APP_MEMORY}" -k "${APP_DISK}" -t "${TIMEOU
 
 for CF_SERVICE in "${CF_SERVICES[@]}"; do
   if [ -n "${CF_SERVICE}" ]; then
-    echo "Binding service ${CF_SERVICE}"
+    echo "Binding service ${CF_SERVICE} to test app ${TEST_APP_NAME}"
     cf bind-service "${TEST_APP_NAME}" "${CF_SERVICE}"
   fi
 done
