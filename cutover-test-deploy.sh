@@ -45,7 +45,8 @@ shift $(( OPTIND -1 ))
 declare json_file="${1}"
 
 read -r CF_API_ENDPOINT CF_USERNAME CF_PASSWORD CF_ORGANIZATION CF_SPACE CF_EXTERNAL_APP_DOMAIN <<<$(jq -r '. | "\(.api_endpoint) \(.username) \(.password) \(.organization) \(.space) \(.external_app_domain)"' "${json_file}")
-read -r APP_NAME TEST_APP_NAME APP_SUFFIX INSTANCES EXTERNAL_APP_HOSTNAME <<<$(jq -r '. | "\(.app_name) \(.test_app_name) \(.app_suffix) \(.instances) \(.external_app_hostname)"' "${json_file}")
+read -r APP_NAME TEST_APP_NAME INSTANCES EXTERNAL_APP_HOSTNAME <<<$(jq -r '. | "\(.app_name) \(.test_app_name) \(.instances) \(.external_app_hostname)"' "${json_file}")
+read -r APP_SUFFIX <<<$(jq -r '. | "\(.app_suffix)"' "${json_file}")
 
 if [[ ${DEBUG} == true ]]; then
 	echo "CF_API_ENDPOINT => ${CF_API_ENDPOINT}"
