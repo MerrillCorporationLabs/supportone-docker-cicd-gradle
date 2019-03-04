@@ -47,6 +47,7 @@ declare json_file="${1}"
 read -r CF_API_ENDPOINT CF_USERNAME CF_PASSWORD CF_ORGANIZATION CF_SPACE CF_EXTERNAL_APP_DOMAIN <<<$(jq -r '. | "\(.api_endpoint) \(.username) \(.password) \(.organization) \(.space) \(.external_app_domain)"' "${json_file}")
 read -r APP_NAME TEST_APP_NAME INSTANCES EXTERNAL_APP_HOSTNAME <<<$(jq -r '. | "\(.app_name) \(.test_app_name) \(.instances) \(.external_app_hostname)"' "${json_file}")
 read -r APP_SUFFIX <<<$(jq -r '. | "\(.app_suffix)"' "${json_file}")
+readarray -t CUSTOM_ROUTES <<<"$(jq -r '.custom_routes[]' "${json_file}")"
 
 if [[ ${DEBUG} == true ]]; then
 	echo "CF_API_ENDPOINT => ${CF_API_ENDPOINT}"
@@ -58,6 +59,7 @@ if [[ ${DEBUG} == true ]]; then
 	echo "TEST_APP_NAME => ${TEST_APP_NAME}"
 	echo "APP_SUFFIX => ${APP_SUFFIX}"
 	echo "INSTANCES => ${INSTANCES}"
+	echo "CUSTOM_ROUTES => ${CUSTOM_ROUTES[@]}"
 fi
 
 cf api --skip-ssl-validation "${CF_API_ENDPOINT}"
@@ -73,15 +75,42 @@ DEPLOYED_INSTANCES=$(cf curl /v2/apps -X GET -H 'Content-Type: application/x-www
 if [[ -z "$DEPLOYED_INSTANCES" ]]; then
 echo "Deployed app ${DEPLOYED_APP} not found so doing normal deployment instead"
 
+echo "Mapping route ${EXTERNAL_APP_HOSTNAME}${APP_SUFFIX}.${CF_EXTERNAL_APP_DOMAIN} to app ${NEW_APP}"
 cf map-route "${NEW_APP}" "${CF_EXTERNAL_APP_DOMAIN}" -n "${EXTERNAL_APP_HOSTNAME}${APP_SUFFIX}"
+
+for CUSTOM_ROUTE in "${CUSTOM_ROUTES[@]}"; do
+  if [ -n "${CUSTOM_ROUTE}" ]; then
+    ROUTE=($CUSTOM_ROUTE)
+    HOST="${ROUTE[0]}"
+    DOMAIN="${ROUTE[1]}"
+    echo "Mapping route ${HOST}.${DOMAIN} to deployed app ${DEPLOYED_APP}"
+    cf map-route "${DEPLOYED_APP}" "${DOMAIN}" -n "${HOST}"
+  fi
+done
+
+echo "Scaling app ${NEW_APP} to ${INSTANCES} instances"
 cf scale -i ${INSTANCES} "${NEW_APP}"
+
+echo "Renaming app ${NEW_APP} to ${APP_NAME}"
 cf rename "${NEW_APP}" "${APP_NAME}"
 
 exit 0
 fi
 
 echo "Performing cutover to new app ${NEW_APP}"
+
+echo "Mapping route ${EXTERNAL_APP_HOSTNAME}${APP_SUFFIX}.${CF_EXTERNAL_APP_DOMAIN} to new app ${NEW_APP}"
 cf map-route "${NEW_APP}" "${CF_EXTERNAL_APP_DOMAIN}" -n "${EXTERNAL_APP_HOSTNAME}${APP_SUFFIX}"
+
+for CUSTOM_ROUTE in "${CUSTOM_ROUTES[@]}"; do
+  if [ -n "${CUSTOM_ROUTE}" ]; then
+    ROUTE=($CUSTOM_ROUTE)
+    HOST="${ROUTE[0]}"
+    DOMAIN="${ROUTE[1]}"
+    echo "Mapping route ${HOST}.${DOMAIN} to new app ${NEW_APP}"
+    cf map-route "${NEW_APP}" "${DOMAIN}" -n "${HOST}"
+  fi
+done
 
 echo "A/B deployment"
 if [[ ! -z "${DEPLOYED_APP}" && "${DEPLOYED_APP}" != "" ]]; then
