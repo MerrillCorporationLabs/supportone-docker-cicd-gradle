@@ -98,10 +98,13 @@ cf curl "${CRASH_EVENT_ENDPOINT}&q=actee:${APP_GUID}" --output crash_events
 readarray -t CRASHES <<<"$(jq -r '.resources[]' "crash_events")"
 
 [[ "$STATUS" =~ 'started'$ ]] && is_started=true || is_started=false
-echo "app is started = $is_started"
+echo "Test deploy app is started -- $is_started"
 [[ "$INSTANCES" =~ '1/1'$ ]] && has_running_instance=true || has_running_instance=false
-echo "app has running instance = $has_running_instance"
+echo "Test deploy app has running instance -- $has_running_instance"
 [[ !${CRASHES[@]} ]] && has_no_crashes=true || has_no_crashes=false
-echo "app has no crashes = $has_no_crashes"
+echo "Test deploy app has no crashes -- $has_no_crashes"
 
-[[ ! $is_started && ! $has_running_instance && ! $has_no_crashes ]] && exit 1
+if [[ ! $is_started || ! $has_running_instance || ! $has_no_crashes ]]; then
+echo "Test deploy app is not healthy"
+exit 1
+fi
