@@ -69,12 +69,28 @@ echo "Test deploy app ${TEST_APP_NAME} not found so nothing to validate"
 exit 1
 fi
 
+#    cf app ZZZ-TESTDEPLOY-metadata-composite-service-fecfdbdf-2c77-4c6f-ba
+#    Showing health and status for app ZZZ-TESTDEPLOY-metadata-composite-service-fecfdbdf-2c77-4c6f-ba in org us2-datasiteone / space devg as shartma...
+#
+#    name:              ZZZ-TESTDEPLOY-metadata-composite-service-fecfdbdf-2c77-4c6f-ba
+#    requested state:   started
+#    routes:            ZZZ-TESTDEPLOY-metadata-composite-service-fecfdbdf-2c77-4c6f-ba.apps.us2.devg.foundry.mrll.com
+#    last uploaded:     Wed 06 Mar 19:03:29 UTC 2019
+#    stack:             cflinuxfs2
+#    buildpacks:        https://github.com/cloudfoundry/java-buildpack.git#v4.9
+#
+#    type:           web
+#    instances:      1/1
+#    memory usage:   3072M
+#         state     since                  cpu    memory       disk           details
+#    #0   running   2019-03-06T19:04:19Z   0.3%   1.1G of 3G   196.9M of 1G
+
 CRASH_EVENT_ENDPOINT="/v2/events?order-by=timestamp&order-direction=desc&results-per-page=5&q=type:app.crash"
 
 cf app "$TEST_APP_NAME" > app
 cf app "$TEST_APP_NAME" --guid > guid
 awk 'NR==4' app > status
-awk 'NR==5' app > instances
+awk 'NR==11' app > instances
 APP_GUID=$(cat guid)
 STATUS=$(cat status)
 INSTANCES=$(cat instances)
