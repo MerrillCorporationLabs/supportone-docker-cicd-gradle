@@ -67,6 +67,7 @@ COPY rolling-deploy.sh /usr/local/bin
 COPY test-deploy.sh /usr/local/bin
 COPY validate-test-deploy-health.sh /usr/local/bin
 COPY cutover-test-deploy.sh /usr/local/bin
+COPY run-acceptance-tests.sh /usr/local/bin
 COPY recent-logs.sh /usr/local/bin
 COPY cleanup.sh /usr/local/bin
 
