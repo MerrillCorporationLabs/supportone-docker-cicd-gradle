@@ -104,7 +104,4 @@ echo "Test deploy app has running instance -- $has_running_instance"
 [[ !${CRASHES[@]} ]] && has_no_crashes=true || has_no_crashes=false
 echo "Test deploy app has no crashes -- $has_no_crashes"
 
-if [[ ! $is_started || ! $has_running_instance || ! $has_no_crashes ]]; then
-echo "Test deploy app is not healthy"
-exit 1
-fi
+[[ ! $is_started || ! $has_running_instance || ! $has_no_crashes ]] && echo "Test deploy app is not healthy" && exit 1
