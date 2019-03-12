@@ -56,9 +56,7 @@ ENV PATH="${SONAR_RUNNER_HOME}/bin:${PATH}"
 ADD https://github.com/Yelp/dumb-init/releases/download/v1.2.0/dumb-init_1.2.0_amd64 /usr/local/bin/dumb-init
 RUN chmod +x /usr/local/bin/dumb-init
 
-# Need to use old 6.42.0 version because latest 6.43.0 version has problem in 1.10 prodeu
-# When pushing ui app get following error -- No resource exists with the name processes
-RUN wget -qO- "https://packages.cloudfoundry.org/stable?release=linux64-binary&version=6.42.0&source=github" | tar -zx && \
+RUN wget -qO- "https://packages.cloudfoundry.org/stable?release=linux64-binary&source=github" | tar -zx && \
 	mv cf /usr/local/bin && \
 	cf --version
 
