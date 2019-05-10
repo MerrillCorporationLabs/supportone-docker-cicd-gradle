@@ -167,5 +167,8 @@ if [[ ! -z "${DEPLOYED_APP}" && "${DEPLOYED_APP}" != "" ]]; then
     cf delete "${DEPLOYED_APP}" -f
 fi
 
+echo "Unmapping test deploy route from new app ${NEW_APP}"
+cf unmap-route "${NEW_APP}" "${CF_APP_DOMAIN}" -n "${NEW_APP}"
+
 echo "Renaming new app ${NEW_APP} to ${DEPLOYED_APP}"
 cf rename "${NEW_APP}" "${DEPLOYED_APP}"
