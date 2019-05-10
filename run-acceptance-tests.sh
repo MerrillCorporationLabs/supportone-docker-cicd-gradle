@@ -44,15 +44,15 @@ shift $(( OPTIND -1 ))
 declare json_file="${1}"
 
 # set cf vars
-read -r CF_API_ENDPOINT CF_USERNAME CF_PASSWORD CF_ORGANIZATION CF_SPACE CF_BASE_ENVIRONMENT CF_EXTERNAL_APP_DOMAIN TEST_APP_NAME <<<$(jq -r '. | "\(.api_endpoint) \(.username) \(.password) \(.organization) \(.space) \(.base_environment) \(.external_app_domain) \(.test_app_name)"' "${json_file}")
+read -r CF_API_ENDPOINT CF_USERNAME CF_PASSWORD CF_ORGANIZATION CF_SPACE CF_BASE_ENVIRONMENT CF_APP_DOMAIN TEST_APP_NAME <<<$(jq -r '. | "\(.api_endpoint) \(.username) \(.password) \(.organization) \(.space) \(.base_environment) \(.app_domain) \(.test_app_name)"' "${json_file}")
 
 if [[ ${DEBUG} == true ]]; then
 	echo "CF_API_ENDPOINT => ${CF_API_ENDPOINT}"
 	echo "CF_ORGANIZATION => ${CF_ORGANIZATION}"
 	echo "CF_SPACE => ${CF_SPACE}"
 	echo "CF_BASE_ENVIRONMENT => ${CF_BASE_ENVIRONMENT}"
-	echo "CF_EXTERNAL_APP_DOMAIN => ${CF_EXTERNAL_APP_DOMAIN}"
+	echo "CF_APP_DOMAIN => ${CF_APP_DOMAIN}"
 	echo "TEST_APP_NAME => ${TEST_APP_NAME}"
 fi
 
-./gradlew runAcceptance --no-daemon -DPR=true -DPCF_USER="${CF_USERNAME}" -DPCF_PWD="${CF_PASSWORD}" -DTARGET_SERVICE="${TEST_APP_NAME}" -DTARGET_DOMAIN="${CF_EXTERNAL_APP_DOMAIN}" -DTARGET_ENVIRONMENT="${CF_BASE_ENVIRONMENT}" -DPCF_URI="${CF_API_ENDPOINT}" -DPCF_API_DOMAIN="${CF_API_ENDPOINT}" -DPCF_SPACE="${CF_SPACE}" -DPCF_ORG="${CF_ORGANIZATION}"
+./gradlew runAcceptance --no-daemon -DPR=true -DPCF_USER="${CF_USERNAME}" -DPCF_PWD="${CF_PASSWORD}" -DTARGET_SERVICE="${TEST_APP_NAME}" -DTARGET_DOMAIN="${CF_APP_DOMAIN}" -DTARGET_ENVIRONMENT="${CF_BASE_ENVIRONMENT}" -DPCF_URI="${CF_API_ENDPOINT}" -DPCF_API_DOMAIN="${CF_API_ENDPOINT}" -DPCF_SPACE="${CF_SPACE}" -DPCF_ORG="${CF_ORGANIZATION}"
