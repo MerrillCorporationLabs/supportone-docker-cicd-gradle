@@ -45,7 +45,7 @@ declare json_file="${1}"
 
 # set cf vars
 read -r CF_API_ENDPOINT CF_BUILDPACK CF_USERNAME CF_PASSWORD CF_ORGANIZATION CF_SPACE CF_APP_DOMAIN <<<$(jq -r '. | "\(.api_endpoint) \(.buildpack) \(.username) \(.password) \(.organization) \(.space) \(.app_domain)"' "${json_file}")
-read -r TEST_APP_NAME APP_MEMORY APP_DISK TIMEOUT INSTANCES ARTIFACT_PATH ARTIFACT_TYPE EXTERNAL_APP_HOSTNAME PUSH_OPTIONS <<<$(jq -r '. | "\(.test_app_name) \(.app_memory) \(.app_disk) \(.timeout) \(.instances) \(.artifact_path) \(.artifact_type) \(.external_app_hostname) \(.push_options)"' "${json_file}")
+read -r TEST_APP_NAME APP_MEMORY APP_DISK TIMEOUT INSTANCES ARTIFACT_PATH ARTIFACT_TYPE PUSH_OPTIONS <<<$(jq -r '. | "\(.test_app_name) \(.app_memory) \(.app_disk) \(.timeout) \(.instances) \(.artifact_path) \(.artifact_type) \(.push_options)"' "${json_file}")
 read -r APP_SUFFIX <<<$(jq -r '. | "\(.app_suffix)"' "${json_file}")
 readarray -t CF_SERVICES <<<"$(jq -r '.services[]' "${json_file}")"
 
@@ -64,7 +64,6 @@ if [[ ${DEBUG} == true ]]; then
 	echo "CF_ORGANIZATION => ${CF_ORGANIZATION}"
 	echo "CF_SPACE => ${CF_SPACE}"
 	echo "CF_APP_DOMAIN => ${CF_APP_DOMAIN}"
-	echo "EXTERNAL_APP_HOSTNAME => ${EXTERNAL_APP_HOSTNAME}"
 	echo "TEST_APP_NAME => ${TEST_APP_NAME}"
 	echo "APP_MEMORY => ${APP_MEMORY}"
 	echo "APP_DISK => ${APP_DISK}"
